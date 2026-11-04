@@ -25,3 +25,7 @@ logs/
 
 # local temporary MySQL instance used for self-testing
 .mysql-test/
+
+# never commit credentials
+.github-token
+*.pat
