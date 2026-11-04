@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/head :: head('登录')}"></head>
+<body class="auth-page">
+<main class="auth-card">
+    <p class="eyebrow">FIVE IN A ROW</p>
+    <h1>五子棋在线对战</h1>
+    <p class="subtitle">登录后开始匹配，与对手实时对弈</p>
+
+    <div class="alert error" th:if="${param.error}">用户名或密码错误</div>
+    <div class="alert ok" th:if="${param.logout}">已退出登录</div>
+    <div class="alert ok" th:if="${param.registered}">注册成功，请登录</div>
+
+    <form th:action="@{/login}" method="post" class="form">
+        <div class="field">
+            <label for="username">用户名</label>
+            <input id="username" name="username" type="text" autocomplete="username" required autofocus>
+        </div>
+        <div class="field">
+            <label for="password">密码</label>
+            <input id="password" name="password" type="password" autocomplete="current-password" required>
+        </div>
+        <button type="submit" class="btn primary block">登录</button>
+    </form>
+
+    <p class="switch">还没有账号？<a th:href="@{/register}">立即注册</a></p>
+</main>
+</body>
+</html>

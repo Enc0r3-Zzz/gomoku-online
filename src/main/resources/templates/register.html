@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/head :: head('注册')}"></head>
+<body class="auth-page">
+<main class="auth-card">
+    <p class="eyebrow">CREATE ACCOUNT</p>
+    <h1>注册账号</h1>
+    <p class="subtitle">用户名用于登录，昵称展示在对局中</p>
+
+    <form th:action="@{/register}" th:object="${form}" method="post" class="form" novalidate>
+        <div class="field">
+            <label for="username">用户名</label>
+            <input id="username" type="text" th:field="*{username}"
+                   placeholder="3-16 位字母、数字或下划线" autocomplete="username" autofocus>
+            <p class="field-error" th:if="${#fields.hasErrors('username')}" th:errors="*{username}">用户名错误</p>
+        </div>
+
+        <div class="field">
+            <label for="nickname">昵称</label>
+            <input id="nickname" type="text" th:field="*{nickname}"
+                   placeholder="对局中显示的名字" autocomplete="nickname">
+            <p class="field-error" th:if="${#fields.hasErrors('nickname')}" th:errors="*{nickname}">昵称错误</p>
+        </div>
+
+        <div class="field">
+            <label for="password">密码</label>
+            <input id="password" type="password" th:field="*{password}"
+                   placeholder="至少 8 位，含字母和数字" autocomplete="new-password">
+            <p class="field-error" th:if="${#fields.hasErrors('password')}" th:errors="*{password}">密码错误</p>
+        </div>
+
+        <div class="alert error" th:if="${#fields.hasGlobalErrors()}">
+            <p th:each="err : ${#fields.globalErrors()}" th:text="${err}">注册失败</p>
+        </div>
+
+        <button type="submit" class="btn primary block">注册</button>
+    </form>
+
+    <p class="switch">已有账号？<a th:href="@{/login}">去登录</a></p>
+</main>
+</body>
+</html>

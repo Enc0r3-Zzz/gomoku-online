@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/head :: head('排行榜')}"></head>
+<body class="app-page">
+<header class="topbar">
+    <a class="brand" th:href="@{/lobby}">五子棋 <span>ONLINE</span></a>
+    <a class="link-btn" th:href="@{/lobby}">返回大厅</a>
+</header>
+
+<main class="lobby">
+    <section class="card">
+        <p class="eyebrow">LEADERBOARD</p>
+        <h1>天梯排行</h1>
+        <p class="muted">M4 开放：ELO 评分、Top 50 与我的排名。</p>
+        <a class="btn ghost" th:href="@{/lobby}">返回大厅</a>
+    </section>
+</main>
+</body>
+</html>
