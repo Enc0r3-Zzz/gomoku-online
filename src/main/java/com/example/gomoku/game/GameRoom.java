@@ -18,6 +18,7 @@ public class GameRoom {
     private final Map<Long, Instant> disconnectedAt = new ConcurrentHashMap<>();
     private final Map<Long, Integer> lastDeltas = new ConcurrentHashMap<>();
     private final Map<Long, Integer> lastRatings = new ConcurrentHashMap<>();
+    private List<int[]> winningLine = List.of();
     private final Object lock = new Object();
 
     private int seq;
@@ -91,6 +92,14 @@ public class GameRoom {
 
     public Map<Long, Integer> getLastRatings() {
         return lastRatings;
+    }
+
+    public List<int[]> getWinningLine() {
+        return winningLine;
+    }
+
+    public void setWinningLine(List<int[]> winningLine) {
+        this.winningLine = winningLine;
     }
 
     public boolean bothConnected() {

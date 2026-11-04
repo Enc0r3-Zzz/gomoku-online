@@ -101,4 +101,42 @@ class BoardTest {
         Board board = new Board();
         assertThat(board.hasFive(0, 0)).isFalse();
     }
+
+    @Test
+    void returnsWinningLineInOrder() {
+        Board board = new Board();
+        for (int x = 3; x <= 7; x++) {
+            board.place(x, 5, Stone.BLACK);
+        }
+
+        var line = board.winningLine(5, 5);
+
+        assertThat(line).hasSize(5);
+        assertThat(line.get(0)).containsExactly(3, 5);
+        assertThat(line.get(4)).containsExactly(7, 5);
+    }
+
+    @Test
+    void returnsWinningLineForDiagonal() {
+        Board board = new Board();
+        for (int i = 0; i < 5; i++) {
+            board.place(3 + i, 3 + i, Stone.WHITE);
+        }
+
+        var line = board.winningLine(5, 5);
+
+        assertThat(line).hasSize(5);
+        assertThat(line.get(0)).containsExactly(3, 3);
+        assertThat(line.get(4)).containsExactly(7, 7);
+    }
+
+    @Test
+    void returnsEmptyWinningLineWhenNoWin() {
+        Board board = new Board();
+        for (int x = 0; x < 4; x++) {
+            board.place(x, 0, Stone.BLACK);
+        }
+
+        assertThat(board.winningLine(1, 0)).isEmpty();
+    }
 }

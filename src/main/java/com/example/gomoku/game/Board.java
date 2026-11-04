@@ -1,5 +1,8 @@
 package com.example.gomoku.game;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * 15x15 棋盘，坐标 x=列、y=行，范围 0..14。
  * 无禁手（自由五子棋），五连及以上判胜。
@@ -66,6 +69,41 @@ public class Board {
                 || countDirection(x, y, 0, 1) >= 5
                 || countDirection(x, y, 1, 1) >= 5
                 || countDirection(x, y, 1, -1) >= 5;
+    }
+
+    /**
+     * 返回经过 (x,y) 的连续五子（或更多）坐标，按方向从一端到另一端排序。
+     * 未成五时返回空列表。
+     */
+    public List<int[]> winningLine(int x, int y) {
+        Stone stone = get(x, y);
+        if (stone == Stone.EMPTY) {
+            return List.of();
+        }
+        int[][] directions = {{1, 0}, {0, 1}, {1, 1}, {1, -1}};
+        for (int[] direction : directions) {
+            int dx = direction[0];
+            int dy = direction[1];
+            int startX = x;
+            int startY = y;
+            while (inBounds(startX - dx, startY - dy)
+                    && get(startX - dx, startY - dy) == stone) {
+                startX -= dx;
+                startY -= dy;
+            }
+            List<int[]> line = new ArrayList<>();
+            int currentX = startX;
+            int currentY = startY;
+            while (inBounds(currentX, currentY) && get(currentX, currentY) == stone) {
+                line.add(new int[]{currentX, currentY});
+                currentX += dx;
+                currentY += dy;
+            }
+            if (line.size() >= 5) {
+                return line;
+            }
+        }
+        return List.of();
     }
 
     private int countDirection(int x, int y, int dx, int dy) {

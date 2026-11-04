@@ -6,6 +6,10 @@ export class GomokuBoard {
         this.ctx = canvas.getContext('2d');
         this.moves = [];
         this.lastMove = null;
+        this.winningLine = [];
+        this.hover = null;
+        this.myTurn = false;
+        this.myStone = 'BLACK';
         this.onMove = null;
         this.resize();
         window.addEventListener('resize', () => {
@@ -13,6 +17,13 @@ export class GomokuBoard {
             this.draw();
         });
         this.canvas.addEventListener('click', event => this.click(event));
+        this.canvas.addEventListener('mousemove', event => this.mouseMove(event));
+        this.canvas.addEventListener('mouseleave', () => {
+            if (this.hover) {
+                this.hover = null;
+                this.draw();
+            }
+        });
     }
 
     resize() {
@@ -30,6 +41,7 @@ export class GomokuBoard {
     setMoves(moves) {
         this.moves = Array.isArray(moves) ? moves.slice() : [];
         this.lastMove = this.moves.length ? this.moves[this.moves.length - 1] : null;
+        this.winningLine = [];
         this.draw();
     }
 
@@ -39,11 +51,44 @@ export class GomokuBoard {
         this.draw();
     }
 
+    setWinningLine(line) {
+        this.winningLine = Array.isArray(line) ? line : [];
+        this.draw();
+    }
+
+    setMyTurn(enabled) {
+        this.myTurn = enabled;
+        if (!enabled) {
+            this.hover = null;
+        }
+        this.draw();
+    }
+
+    setMyColor(color) {
+        this.myStone = color;
+    }
+
     pointOf(move) {
         return {
             x: this.padding + move.x * this.cell,
             y: this.padding + move.y * this.cell
         };
+    }
+
+    pointAt(event) {
+        const rect = this.canvas.getBoundingClientRect();
+        const px = event.clientX - rect.left;
+        const py = event.clientY - rect.top;
+        const x = Math.round((px - this.padding) / this.cell);
+        const y = Math.round((py - this.padding) / this.cell);
+        if (x < 0 || x >= SIZE || y < 0 || y >= SIZE) {
+            return null;
+        }
+        const center = this.pointOf({ x, y });
+        if (Math.hypot(px - center.x, py - center.y) > this.cell * 0.48) {
+            return null;
+        }
+        return { x, y };
     }
 
     draw() {
@@ -82,24 +127,38 @@ export class GomokuBoard {
             ctx.fill();
         }
 
-        this.moves.forEach(move => this.drawStone(move));
+        this.moves.forEach(move => this.drawStoneAt(move.x, move.y, move.seq % 2 === 1, 1));
+
+        if (this.winningLine.length >= 2) {
+            const start = this.pointOf(this.winningLine[0]);
+            const end = this.pointOf(this.winningLine[this.winningLine.length - 1]);
+            ctx.strokeStyle = '#c0392b';
+            ctx.lineWidth = Math.max(3, cell * 0.12);
+            ctx.lineCap = 'round';
+            ctx.beginPath();
+            ctx.moveTo(start.x, start.y);
+            ctx.lineTo(end.x, end.y);
+            ctx.stroke();
+        }
 
         if (this.lastMove) {
             const point = this.pointOf(this.lastMove);
-            ctx.strokeStyle = '#c0392b';
+            ctx.strokeStyle = 'rgba(192, 57, 43, 0.8)';
             ctx.lineWidth = 2;
             ctx.beginPath();
             ctx.arc(point.x, point.y, Math.max(3, cell * 0.12), 0, Math.PI * 2);
             ctx.stroke();
         }
+
+        if (this.hover && this.myTurn) {
+            this.drawStoneAt(this.hover.x, this.hover.y, this.myStone === 'BLACK', 0.35);
+        }
     }
 
-    drawStone(move) {
+    drawStoneAt(x, y, isBlack, alpha) {
         const ctx = this.ctx;
-        const point = this.pointOf(move);
+        const point = this.pointOf({ x, y });
         const radius = this.cell * 0.42;
-        const isBlack = move.seq % 2 === 1;
-
         const gradient = ctx.createRadialGradient(
             point.x - radius * 0.35,
             point.y - radius * 0.35,
@@ -116,6 +175,8 @@ export class GomokuBoard {
             gradient.addColorStop(1, '#d8d2c4');
         }
 
+        ctx.save();
+        ctx.globalAlpha = alpha;
         ctx.beginPath();
         ctx.arc(point.x, point.y, radius, 0, Math.PI * 2);
         ctx.fillStyle = gradient;
@@ -123,27 +184,35 @@ export class GomokuBoard {
         ctx.strokeStyle = 'rgba(0, 0, 0, 0.25)';
         ctx.lineWidth = 0.8;
         ctx.stroke();
+        ctx.restore();
+    }
+
+    mouseMove(event) {
+        if (!this.myTurn) {
+            return;
+        }
+        const point = this.pointAt(event);
+        if (!point || this.moves.some(move => move.x === point.x && move.y === point.y)) {
+            if (this.hover) {
+                this.hover = null;
+                this.draw();
+            }
+            return;
+        }
+        if (!this.hover || this.hover.x !== point.x || this.hover.y !== point.y) {
+            this.hover = point;
+            this.draw();
+        }
     }
 
     click(event) {
-        if (!this.onMove) {
+        if (!this.onMove || !this.myTurn) {
             return;
         }
-        const rect = this.canvas.getBoundingClientRect();
-        const px = event.clientX - rect.left;
-        const py = event.clientY - rect.top;
-        const x = Math.round((px - this.padding) / this.cell);
-        const y = Math.round((py - this.padding) / this.cell);
-        if (x < 0 || x >= SIZE || y < 0 || y >= SIZE) {
+        const point = this.pointAt(event);
+        if (!point || this.moves.some(move => move.x === point.x && move.y === point.y)) {
             return;
         }
-        const center = this.pointOf({ x, y });
-        if (Math.hypot(px - center.x, py - center.y) > this.cell * 0.48) {
-            return;
-        }
-        if (this.moves.some(move => move.x === x && move.y === y)) {
-            return;
-        }
-        this.onMove({ x, y });
+        this.onMove(point);
     }
 }

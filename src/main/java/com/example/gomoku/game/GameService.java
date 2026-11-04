@@ -152,6 +152,7 @@ public class GameService {
             boolean full = !win && room.getBoard().isFull();
 
             if (win) {
+                room.setWinningLine(room.getBoard().winningLine(x, y));
                 broadcastMove(room, seq, x, y, userId, null, null);
                 finish(room, color == Stone.BLACK ? GameResult.BLACK_WIN : GameResult.WHITE_WIN, userId);
             } else if (full) {
@@ -340,6 +341,7 @@ public class GameService {
         payload.put("winnerId", winnerId);
         payload.put("deltas", room.getLastDeltas());
         payload.put("ratings", room.getLastRatings());
+        payload.put("winningLine", pointList(room.getWinningLine()));
         afterCommit(() -> {
             sessionRegistry.send(room.getBlackId(), "GAME_OVER", payload);
             sessionRegistry.send(room.getWhiteId(), "GAME_OVER", payload);
@@ -386,7 +388,17 @@ public class GameService {
         }).toList());
         data.put("deltas", room.getLastDeltas().isEmpty() ? null : room.getLastDeltas());
         data.put("ratings", room.getLastRatings().isEmpty() ? null : room.getLastRatings());
+        data.put("winningLine", pointList(room.getWinningLine()));
         afterCommit(() -> sessionRegistry.send(userId, "STATE", data));
+    }
+
+    private List<Map<String, Object>> pointList(List<int[]> points) {
+        return points.stream().map(point -> {
+            Map<String, Object> item = new LinkedHashMap<>();
+            item.put("x", point[0]);
+            item.put("y", point[1]);
+            return item;
+        }).toList();
     }
 
     private void broadcastMove(GameRoom room, int seq, int x, int y, Long playerId,

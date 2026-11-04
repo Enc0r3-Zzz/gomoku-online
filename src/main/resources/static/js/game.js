@@ -6,6 +6,7 @@ const matchId = Number(root.dataset.matchId);
 const myId = Number(root.dataset.myId);
 const myColor = root.dataset.myColor;
 const board = new GomokuBoard(document.getElementById('board'));
+board.setMyColor(myColor);
 const socket = new GameSocket();
 
 const turnText = document.getElementById('turnText');
@@ -63,6 +64,7 @@ function updateTurn(nextTurn) {
         turn = nextTurn;
     }
     myTurn = status === 'PLAYING' && turn === myColor;
+    board.setMyTurn(myTurn);
     if (status === 'WAITING') {
         turnText.textContent = '等待对手加入…';
     } else if (status === 'FINISHED') {
@@ -114,6 +116,7 @@ socket.on('STATE', data => {
     seq = data.seq;
     deadline = data.deadline;
     board.setMoves(data.moves || []);
+    board.setWinningLine(data.winningLine || []);
     renderChats(data.chats || []);
     if (status === 'FINISHED') {
         showResult(data.result, data);
@@ -134,6 +137,7 @@ socket.on('MOVE', data => {
 socket.on('CHAT', data => appendChat(data));
 
 socket.on('GAME_OVER', data => {
+    board.setWinningLine(data.winningLine || []);
     appendSystem('对局结束');
     showResult(data.result, data);
 });
