@@ -33,11 +33,6 @@ public class LobbyController {
         return "lobby";
     }
 
-    @GetMapping("/leaderboard")
-    public String leaderboard() {
-        return "leaderboard";
-    }
-
     @GetMapping("/api/me")
     @ResponseBody
     public Map<String, Object> me(Authentication authentication) {

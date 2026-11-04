@@ -16,6 +16,8 @@ public class GameRoom {
     private final List<Move> moves = new ArrayList<>();
     private final Set<Long> connected = ConcurrentHashMap.newKeySet();
     private final Map<Long, Instant> disconnectedAt = new ConcurrentHashMap<>();
+    private final Map<Long, Integer> lastDeltas = new ConcurrentHashMap<>();
+    private final Map<Long, Integer> lastRatings = new ConcurrentHashMap<>();
     private final Object lock = new Object();
 
     private int seq;
@@ -81,6 +83,14 @@ public class GameRoom {
 
     public Instant disconnectedAt(Long userId) {
         return disconnectedAt.get(userId);
+    }
+
+    public Map<Long, Integer> getLastDeltas() {
+        return lastDeltas;
+    }
+
+    public Map<Long, Integer> getLastRatings() {
+        return lastRatings;
     }
 
     public boolean bothConnected() {

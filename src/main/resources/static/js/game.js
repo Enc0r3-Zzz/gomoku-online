@@ -72,7 +72,7 @@ function updateTurn(nextTurn) {
     }
 }
 
-function showResult(result) {
+function showResult(result, payload) {
     status = 'FINISHED';
     myTurn = false;
     updateTurn(turn);
@@ -95,7 +95,16 @@ function showResult(result) {
     } else if (result === 'ABORT') {
         resultDetail.textContent = '双方掉线，本局不计分。';
     } else {
-        resultDetail.textContent = '本局结果已记录。';
+        let detail = '本局结果已记录。';
+        if (payload && payload.deltas) {
+            const delta = payload.deltas[String(myId)];
+            const rating = payload.ratings ? payload.ratings[String(myId)] : null;
+            if (delta !== undefined) {
+                detail = `本局 ${delta >= 0 ? '+' : ''}${delta} 分`
+                    + (rating != null ? ` · 当前 ${rating} 分` : '');
+            }
+        }
+        resultDetail.textContent = detail;
     }
     overlay.classList.remove('hidden');
 }
@@ -107,7 +116,7 @@ socket.on('STATE', data => {
     board.setMoves(data.moves || []);
     renderChats(data.chats || []);
     if (status === 'FINISHED') {
-        showResult(data.result);
+        showResult(data.result, data);
     } else {
         updateTurn(data.turn);
     }
@@ -126,7 +135,7 @@ socket.on('CHAT', data => appendChat(data));
 
 socket.on('GAME_OVER', data => {
     appendSystem('对局结束');
-    showResult(data.result);
+    showResult(data.result, data);
 });
 
 socket.on('OPPONENT_LEFT', data => {

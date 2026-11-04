@@ -615,3 +615,51 @@ input:focus {
     font-size: 12px;
     text-align: center;
 }
+
+/* ---------- leaderboard ---------- */
+
+.leaderboard-page {
+    width: min(900px, 100%);
+    margin: 0 auto;
+    padding: 40px 20px 60px;
+}
+
+.leaderboard-page .card {
+    padding: 30px;
+}
+
+.leaderboard-table {
+    width: 100%;
+    margin-top: 20px;
+    border-collapse: collapse;
+    font-size: 14px;
+}
+
+.leaderboard-table th,
+.leaderboard-table td {
+    padding: 11px 12px;
+    text-align: left;
+    border-bottom: 1px solid var(--line);
+}
+
+.leaderboard-table th {
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+}
+
+.leaderboard-table td:nth-child(3),
+.leaderboard-table td:nth-child(4),
+.leaderboard-table td:nth-child(5),
+.leaderboard-table td:nth-child(6) {
+    font-variant-numeric: tabular-nums;
+}
+
+.leaderboard-table tr.me {
+    background: var(--accent-soft);
+}
+
+.leaderboard-table tbody tr:hover {
+    background: #faf6ec;
+}

@@ -1,6 +1,7 @@
 package com.example.gomoku.game;
 
 import com.example.gomoku.common.ApiException;
+import com.example.gomoku.rating.RatingHistoryRepository;
 import com.example.gomoku.user.User;
 import com.example.gomoku.user.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -35,6 +36,9 @@ class GameServiceTest {
     @Autowired
     private MoveRepository moveRepository;
 
+    @Autowired
+    private RatingHistoryRepository ratingHistoryRepository;
+
     private User black;
     private User white;
 
@@ -63,8 +67,14 @@ class GameServiceTest {
         assertThat(finished.getResult()).isEqualTo(GameResult.BLACK_WIN);
         assertThat(finished.getWinnerId()).isEqualTo(black.getId());
         assertThat(moveRepository.findByMatchIdOrderBySeqAsc(match.getId())).hasSize(9);
-        assertThat(userRepository.findById(black.getId()).orElseThrow().getWins()).isEqualTo(1);
-        assertThat(userRepository.findById(white.getId()).orElseThrow().getLosses()).isEqualTo(1);
+        User blackAfter = userRepository.findById(black.getId()).orElseThrow();
+        User whiteAfter = userRepository.findById(white.getId()).orElseThrow();
+        assertThat(blackAfter.getWins()).isEqualTo(1);
+        assertThat(whiteAfter.getLosses()).isEqualTo(1);
+        assertThat(blackAfter.getRating()).isGreaterThan(1200);
+        assertThat(whiteAfter.getRating()).isLessThan(1200);
+        assertThat(ratingHistoryRepository.countByUserId(black.getId())).isEqualTo(1);
+        assertThat(ratingHistoryRepository.countByUserId(white.getId())).isEqualTo(1);
     }
 
     @Test

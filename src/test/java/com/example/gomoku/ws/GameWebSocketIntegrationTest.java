@@ -7,6 +7,7 @@ import com.example.gomoku.game.GameResult;
 import com.example.gomoku.game.MoveRepository;
 import com.example.gomoku.chat.ChatRepository;
 import com.example.gomoku.match.MatchmakingService;
+import com.example.gomoku.rating.RatingHistoryRepository;
 import com.example.gomoku.user.User;
 import com.example.gomoku.user.UserRepository;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -66,6 +67,9 @@ class GameWebSocketIntegrationTest {
     private ChatRepository chatRepository;
 
     @Autowired
+    private RatingHistoryRepository ratingHistoryRepository;
+
+    @Autowired
     private MatchmakingService matchmakingService;
 
     @Autowired
@@ -96,6 +100,7 @@ class GameWebSocketIntegrationTest {
             whiteSession.close();
         }
         if (matchId != null) {
+            ratingHistoryRepository.deleteAll(ratingHistoryRepository.findByMatchId(matchId));
             chatRepository.deleteAll(chatRepository.findTop50ByMatchIdOrderByIdDesc(matchId));
             moveRepository.deleteAll(moveRepository.findByMatchIdOrderBySeqAsc(matchId));
             gameMatchRepository.deleteById(matchId);
@@ -171,6 +176,11 @@ class GameWebSocketIntegrationTest {
         assertThat(moveRepository.findByMatchIdOrderBySeqAsc(matchId)).hasSize(9);
         assertThat(userRepository.findById(match.getBlackId()).orElseThrow().getWins()).isEqualTo(1);
         assertThat(userRepository.findById(match.getWhiteId()).orElseThrow().getLosses()).isEqualTo(1);
+
+        JsonNode deltas = firstOver.path("data").path("deltas");
+        assertThat(deltas.size()).isEqualTo(2);
+        assertThat(deltas.path(String.valueOf(match.getBlackId())).asInt()).isPositive();
+        assertThat(deltas.path(String.valueOf(match.getWhiteId())).asInt()).isNegative();
     }
 
     private void play(WebSocketSession firstSession,

@@ -4,6 +4,10 @@ import com.example.gomoku.chat.ChatMessage;
 import com.example.gomoku.chat.ChatService;
 import com.example.gomoku.common.ApiException;
 import com.example.gomoku.common.ErrorCode;
+import com.example.gomoku.rating.RatingHistory;
+import com.example.gomoku.rating.RatingHistoryRepository;
+import com.example.gomoku.rating.RatingService;
+import com.example.gomoku.rating.RatingService.RatingChange;
 import com.example.gomoku.user.User;
 import com.example.gomoku.user.UserRepository;
 import com.example.gomoku.ws.WsSessionRegistry;
@@ -31,6 +35,8 @@ public class GameService {
     private final UserRepository userRepository;
     private final WsSessionRegistry sessionRegistry;
     private final ChatService chatService;
+    private final RatingService ratingService;
+    private final RatingHistoryRepository ratingHistoryRepository;
     private final Map<Long, GameRoom> rooms = new ConcurrentHashMap<>();
 
     @Value("${gomoku.game.disconnect-grace-seconds:60}")
@@ -40,12 +46,16 @@ public class GameService {
                        MoveRepository moveRepository,
                        UserRepository userRepository,
                        WsSessionRegistry sessionRegistry,
-                       ChatService chatService) {
+                       ChatService chatService,
+                       RatingService ratingService,
+                       RatingHistoryRepository ratingHistoryRepository) {
         this.gameMatchRepository = gameMatchRepository;
         this.moveRepository = moveRepository;
         this.userRepository = userRepository;
         this.sessionRegistry = sessionRegistry;
         this.chatService = chatService;
+        this.ratingService = ratingService;
+        this.ratingHistoryRepository = ratingHistoryRepository;
     }
 
     @Transactional
@@ -282,6 +292,13 @@ public class GameService {
         User white = userRepository.findById(room.getWhiteId())
                 .orElseThrow(() -> new ApiException(ErrorCode.NOT_FOUND, "玩家不存在"));
 
+        int beforeBlack = black.getRating();
+        int beforeWhite = white.getRating();
+        int blackGames = black.getWins() + black.getLosses() + black.getDraws();
+        int whiteGames = white.getWins() + white.getLosses() + white.getDraws();
+        RatingChange change = ratingService.calculate(
+                beforeBlack, beforeWhite, blackGames, whiteGames, result);
+
         if (result == GameResult.ABORT) {
             // 双方都掉线，直接中止，不计胜负
         } else if (result == GameResult.DRAW) {
@@ -294,8 +311,23 @@ public class GameService {
             white.setWins(white.getWins() + 1);
             black.setLosses(black.getLosses() + 1);
         }
+
+        black.setRating(change.newBlack());
+        white.setRating(change.newWhite());
         userRepository.save(black);
         userRepository.save(white);
+
+        if (result != GameResult.ABORT) {
+            ratingHistoryRepository.save(history(black.getId(), room.getMatchId(),
+                    beforeBlack, change.newBlack(), change.deltaBlack()));
+            ratingHistoryRepository.save(history(white.getId(), room.getMatchId(),
+                    beforeWhite, change.newWhite(), change.deltaWhite()));
+        }
+
+        room.getLastDeltas().put(black.getId(), change.deltaBlack());
+        room.getLastDeltas().put(white.getId(), change.deltaWhite());
+        room.getLastRatings().put(black.getId(), change.newBlack());
+        room.getLastRatings().put(white.getId(), change.newWhite());
 
         room.setStatus(GameMatchStatus.FINISHED);
         room.setResult(result);
@@ -306,10 +338,23 @@ public class GameService {
         payload.put("matchId", room.getMatchId());
         payload.put("result", result.name());
         payload.put("winnerId", winnerId);
+        payload.put("deltas", room.getLastDeltas());
+        payload.put("ratings", room.getLastRatings());
         afterCommit(() -> {
             sessionRegistry.send(room.getBlackId(), "GAME_OVER", payload);
             sessionRegistry.send(room.getWhiteId(), "GAME_OVER", payload);
         });
+    }
+
+    private RatingHistory history(Long userId, Long matchId, int before, int after, int delta) {
+        RatingHistory history = new RatingHistory();
+        history.setUserId(userId);
+        history.setMatchId(matchId);
+        history.setRatingBefore(before);
+        history.setRatingAfter(after);
+        history.setDelta(delta);
+        history.setCreatedAt(LocalDateTime.now());
+        return history;
     }
 
     private void sendState(GameRoom room, Long userId) {
@@ -339,6 +384,8 @@ public class GameService {
             item.put("at", message.getCreatedAt().toString());
             return item;
         }).toList());
+        data.put("deltas", room.getLastDeltas().isEmpty() ? null : room.getLastDeltas());
+        data.put("ratings", room.getLastRatings().isEmpty() ? null : room.getLastRatings());
         afterCommit(() -> sessionRegistry.send(userId, "STATE", data));
     }
 

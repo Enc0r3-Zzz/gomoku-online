@@ -4,15 +4,47 @@
 <body class="app-page">
 <header class="topbar">
     <a class="brand" th:href="@{/lobby}">五子棋 <span>ONLINE</span></a>
-    <a class="link-btn" th:href="@{/lobby}">返回大厅</a>
+    <div class="userbox">
+        <span class="avatar" th:text="${#strings.substring(me.nickname, 0, 1)}">M</span>
+        <span class="nickname" th:text="${me.nickname}">我</span>
+        <span class="rating-pill" th:text="${me.rating}">1200</span>
+        <a class="link-btn" th:href="@{/lobby}">返回大厅</a>
+    </div>
 </header>
 
-<main class="lobby">
+<main class="leaderboard-page">
     <section class="card">
         <p class="eyebrow">LEADERBOARD</p>
         <h1>天梯排行</h1>
-        <p class="muted">M4 开放：ELO 评分、Top 50 与我的排名。</p>
-        <a class="btn ghost" th:href="@{/lobby}">返回大厅</a>
+        <p class="muted">
+            我的排名：第 <strong th:text="${myRank}">1</strong> 名 ·
+            当前评分 <strong th:text="${me.rating}">1200</strong>
+        </p>
+
+        <table class="leaderboard-table">
+            <thead>
+            <tr>
+                <th>#</th>
+                <th>玩家</th>
+                <th>评分</th>
+                <th>胜</th>
+                <th>负</th>
+                <th>平</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="entry : ${entries}" th:classappend="${entry.id == me.id ? 'me' : ''}">
+                <td th:text="${entry.rank}">1</td>
+                <td th:text="${entry.nickname}">玩家</td>
+                <td th:text="${entry.rating}">1200</td>
+                <td th:text="${entry.wins}">0</td>
+                <td th:text="${entry.losses}">0</td>
+                <td th:text="${entry.draws}">0</td>
+            </tr>
+            </tbody>
+        </table>
+
+        <p class="muted small" th:if="${#lists.isEmpty(entries)}">暂无排名数据，先完成一局对战吧。</p>
     </section>
 </main>
 </body>
