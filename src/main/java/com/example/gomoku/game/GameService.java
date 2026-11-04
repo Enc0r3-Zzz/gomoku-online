@@ -1,15 +1,19 @@
 package com.example.gomoku.game;
 
+import com.example.gomoku.chat.ChatMessage;
+import com.example.gomoku.chat.ChatService;
 import com.example.gomoku.common.ApiException;
 import com.example.gomoku.common.ErrorCode;
 import com.example.gomoku.user.User;
 import com.example.gomoku.user.UserRepository;
 import com.example.gomoku.ws.WsSessionRegistry;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
@@ -21,22 +25,27 @@ import java.util.concurrent.ConcurrentHashMap;
 public class GameService {
 
     public static final int TURN_SECONDS = 30;
-    public static final int DISCONNECT_GRACE_SECONDS = 60;
 
     private final GameMatchRepository gameMatchRepository;
     private final MoveRepository moveRepository;
     private final UserRepository userRepository;
     private final WsSessionRegistry sessionRegistry;
+    private final ChatService chatService;
     private final Map<Long, GameRoom> rooms = new ConcurrentHashMap<>();
+
+    @Value("${gomoku.game.disconnect-grace-seconds:60}")
+    private long disconnectGraceSeconds;
 
     public GameService(GameMatchRepository gameMatchRepository,
                        MoveRepository moveRepository,
                        UserRepository userRepository,
-                       WsSessionRegistry sessionRegistry) {
+                       WsSessionRegistry sessionRegistry,
+                       ChatService chatService) {
         this.gameMatchRepository = gameMatchRepository;
         this.moveRepository = moveRepository;
         this.userRepository = userRepository;
         this.sessionRegistry = sessionRegistry;
+        this.chatService = chatService;
     }
 
     @Transactional
@@ -63,7 +72,9 @@ public class GameService {
         }
 
         GameRoom room = rooms.computeIfAbsent(matchId, id -> loadRoom(match));
+        boolean reconnected = room.isDisconnected(userId);
         room.connect(userId);
+        room.markConnected(userId);
 
         boolean started = false;
         if (match.getStatus() == GameMatchStatus.WAITING && room.bothConnected()) {
@@ -82,6 +93,10 @@ public class GameService {
         sendState(room, userId);
         if (started) {
             sendState(room, room.opponentOf(userId));
+        }
+        if (reconnected) {
+            Long opponentId = room.opponentOf(userId);
+            afterCommit(() -> sessionRegistry.send(opponentId, "OPPONENT_BACK", Map.of("matchId", matchId)));
         }
         return room;
     }
@@ -162,11 +177,36 @@ public class GameService {
         for (GameRoom room : rooms.values()) {
             if (room.isPlayer(userId) && room.getStatus() == GameMatchStatus.PLAYING) {
                 room.disconnect(userId);
+                room.markDisconnected(userId);
                 sessionRegistry.send(room.opponentOf(userId), "OPPONENT_LEFT", Map.of(
                         "matchId", room.getMatchId(),
-                        "graceSeconds", DISCONNECT_GRACE_SECONDS));
+                        "graceSeconds", disconnectGraceSeconds));
             }
         }
+    }
+
+    @Transactional
+    public void chat(Long matchId, Long userId, String text) {
+        GameRoom room = rooms.get(matchId);
+        if (room == null) {
+            throw new ApiException(ErrorCode.NOT_IN_GAME, "尚未加入对局");
+        }
+        if (!room.isPlayer(userId)) {
+            throw new ApiException(ErrorCode.FORBIDDEN, "不是本局玩家");
+        }
+        if (room.getStatus() == GameMatchStatus.FINISHED) {
+            throw new ApiException(ErrorCode.GAME_OVER, "对局已结束");
+        }
+
+        ChatMessage message = chatService.send(matchId, userId, text);
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("senderId", userId);
+        data.put("text", message.getContent());
+        data.put("at", message.getCreatedAt().toString());
+        afterCommit(() -> {
+            sessionRegistry.send(room.getBlackId(), "CHAT", data);
+            sessionRegistry.send(room.getWhiteId(), "CHAT", data);
+        });
     }
 
     @Transactional
@@ -174,18 +214,38 @@ public class GameService {
         Instant now = Instant.now();
         for (GameRoom room : rooms.values()) {
             synchronized (room.getLock()) {
-                if (room.getStatus() != GameMatchStatus.PLAYING || room.getTurnDeadline() == null) {
+                if (room.getStatus() != GameMatchStatus.PLAYING) {
                     continue;
                 }
-                if (!now.isAfter(room.getTurnDeadline())) {
+                if (room.getTurnDeadline() != null && now.isAfter(room.getTurnDeadline())) {
+                    Long currentPlayer = room.playerOf(room.getTurn());
+                    Long winnerId = room.opponentOf(currentPlayer);
+                    GameResult result = winnerId.equals(room.getBlackId())
+                            ? GameResult.BLACK_WIN
+                            : GameResult.WHITE_WIN;
+                    finish(room, result, winnerId);
                     continue;
                 }
-                Long currentPlayer = room.playerOf(room.getTurn());
-                Long winnerId = room.opponentOf(currentPlayer);
-                GameResult result = winnerId.equals(room.getBlackId())
-                        ? GameResult.BLACK_WIN
-                        : GameResult.WHITE_WIN;
-                finish(room, result, winnerId);
+
+                Instant blackDown = room.disconnectedAt(room.getBlackId());
+                Instant whiteDown = room.disconnectedAt(room.getWhiteId());
+                boolean blackExpired = blackDown != null
+                        && Duration.between(blackDown, now).getSeconds() >= disconnectGraceSeconds;
+                boolean whiteExpired = whiteDown != null
+                        && Duration.between(whiteDown, now).getSeconds() >= disconnectGraceSeconds;
+
+                if (blackExpired && whiteExpired) {
+                    finish(room, GameResult.ABORT, null);
+                    continue;
+                }
+                if (blackExpired || whiteExpired) {
+                    Long loserId = blackExpired ? room.getBlackId() : room.getWhiteId();
+                    Long winnerId = room.opponentOf(loserId);
+                    GameResult result = winnerId.equals(room.getBlackId())
+                            ? GameResult.BLACK_WIN
+                            : GameResult.WHITE_WIN;
+                    finish(room, result, winnerId);
+                }
             }
         }
     }
@@ -222,7 +282,9 @@ public class GameService {
         User white = userRepository.findById(room.getWhiteId())
                 .orElseThrow(() -> new ApiException(ErrorCode.NOT_FOUND, "玩家不存在"));
 
-        if (result == GameResult.DRAW) {
+        if (result == GameResult.ABORT) {
+            // 双方都掉线，直接中止，不计胜负
+        } else if (result == GameResult.DRAW) {
             black.setDraws(black.getDraws() + 1);
             white.setDraws(white.getDraws() + 1);
         } else if (winnerId != null && winnerId.equals(black.getId())) {
@@ -268,6 +330,13 @@ public class GameService {
             item.put("x", move.getX());
             item.put("y", move.getY());
             item.put("playerId", move.getPlayerId());
+            return item;
+        }).toList());
+        data.put("chats", chatService.recent(room.getMatchId()).stream().map(message -> {
+            Map<String, Object> item = new LinkedHashMap<>();
+            item.put("senderId", message.getSenderId());
+            item.put("text", message.getContent());
+            item.put("at", message.getCreatedAt().toString());
             return item;
         }).toList());
         afterCommit(() -> sessionRegistry.send(userId, "STATE", data));

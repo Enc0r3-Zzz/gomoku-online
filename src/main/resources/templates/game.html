@@ -1,8 +1,7 @@
 <!DOCTYPE html>
 <html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
 <head th:replace="~{fragments/head :: head('对局')}"></head>
-<body class="app-page" th:attr="data-ws-ticket=${wsTicket}">
-<header class="topbar">
+<body class="app-page" th:attr="data-ws-ticket=${wsTicket}"><header class="topbar">
     <a class="brand" th:href="@{/lobby}">五子棋 <span>ONLINE</span></a>
     <div class="userbox">
         <span class="avatar" th:text="${#strings.substring(me.nickname, 0, 1)}">M</span>
@@ -14,6 +13,7 @@
 
 <main class="game-layout" id="gameRoot"
       th:attr="data-match-id=${match.id},
+               data-my-id=${me.id},
                data-my-color=${myColor},
                data-my-name=${me.nickname},
                data-opponent-name=${opponent.nickname},
@@ -25,12 +25,10 @@
         </div>
         <section class="chat-panel" id="chatPanel">
             <div class="chat-header">对局聊天</div>
-            <div class="chat-log" id="chatLog">
-                <p class="chat-placeholder">聊天功能将在 M3 开放</p>
-            </div>
+            <div class="chat-log" id="chatLog"></div>
             <form class="chat-form" id="chatForm">
-                <input id="chatInput" type="text" maxlength="200" placeholder="M3 开放" disabled>
-                <button class="btn primary" type="submit" disabled>发送</button>
+                <input id="chatInput" type="text" maxlength="200" placeholder="输入消息，回车发送" autocomplete="off">
+                <button class="btn primary" type="submit">发送</button>
             </form>
         </section>
     </section>

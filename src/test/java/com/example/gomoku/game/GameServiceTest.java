@@ -18,7 +18,10 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @SpringBootTest
 @Transactional
-@TestPropertySource(properties = "gomoku.scheduling.enabled=false")
+@TestPropertySource(properties = {
+        "gomoku.scheduling.enabled=false",
+        "gomoku.game.disconnect-grace-seconds=1"
+})
 class GameServiceTest {
 
     private static final AtomicInteger COUNTER = new AtomicInteger();
@@ -114,6 +117,32 @@ class GameServiceTest {
         assertThatThrownBy(() -> gameService.joinRoom(match.getId(), outsider.getId()))
                 .isInstanceOf(ApiException.class)
                 .hasMessageContaining("不是本局玩家");
+    }
+
+    @Test
+    void disconnectBeyondGraceLoses() throws InterruptedException {
+        GameMatch match = startGame();
+
+        gameService.disconnect(black.getId());
+        Thread.sleep(1100);
+        gameService.timeoutExpired();
+
+        GameMatch finished = gameService.getMatch(match.getId());
+        assertThat(finished.getStatus()).isEqualTo(GameMatchStatus.FINISHED);
+        assertThat(finished.getResult()).isEqualTo(GameResult.WHITE_WIN);
+        assertThat(finished.getWinnerId()).isEqualTo(white.getId());
+    }
+
+    @Test
+    void reconnectWithinGraceKeepsGameAlive() throws InterruptedException {
+        GameMatch match = startGame();
+
+        gameService.disconnect(black.getId());
+        Thread.sleep(1100);
+        gameService.joinRoom(match.getId(), black.getId());
+        gameService.timeoutExpired();
+
+        assertThat(gameService.getMatch(match.getId()).getStatus()).isEqualTo(GameMatchStatus.PLAYING);
     }
 
     private GameMatch startGame() {

@@ -5,6 +5,7 @@ import com.example.gomoku.game.GameMatchRepository;
 import com.example.gomoku.game.GameMatchStatus;
 import com.example.gomoku.game.GameResult;
 import com.example.gomoku.game.MoveRepository;
+import com.example.gomoku.chat.ChatRepository;
 import com.example.gomoku.match.MatchmakingService;
 import com.example.gomoku.user.User;
 import com.example.gomoku.user.UserRepository;
@@ -62,6 +63,9 @@ class GameWebSocketIntegrationTest {
     private MoveRepository moveRepository;
 
     @Autowired
+    private ChatRepository chatRepository;
+
+    @Autowired
     private MatchmakingService matchmakingService;
 
     @Autowired
@@ -92,6 +96,7 @@ class GameWebSocketIntegrationTest {
             whiteSession.close();
         }
         if (matchId != null) {
+            chatRepository.deleteAll(chatRepository.findTop50ByMatchIdOrderByIdDesc(matchId));
             moveRepository.deleteAll(moveRepository.findByMatchIdOrderBySeqAsc(matchId));
             gameMatchRepository.deleteById(matchId);
         }
@@ -144,6 +149,13 @@ class GameWebSocketIntegrationTest {
                 Duration.ofSeconds(5));
         secondHandler.await("STATE", node -> "PLAYING".equals(node.path("data").path("status").asText()),
                 Duration.ofSeconds(5));
+
+        send(blackSession, "CHAT", Map.of("matchId", matchId, "text", "hello"));
+        JsonNode chatFromBlack = blackHandler.await("CHAT", Duration.ofSeconds(5));
+        JsonNode chatFromWhite = whiteHandler.await("CHAT", Duration.ofSeconds(5));
+        assertThat(chatFromBlack.path("data").path("text").asText()).isEqualTo("hello");
+        assertThat(chatFromWhite.path("data").path("text").asText()).isEqualTo("hello");
+        assertThat(chatRepository.countByMatchId(matchId)).isEqualTo(1);
 
         play(firstSession, secondSession, firstHandler, secondHandler);
 

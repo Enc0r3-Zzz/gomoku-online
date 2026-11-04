@@ -14,5 +14,6 @@ public enum ErrorCode {
     SEQ_MISMATCH,
     GAME_OVER,
     ALREADY_QUEUED,
+    RATE_LIMITED,
     INTERNAL_ERROR
 }

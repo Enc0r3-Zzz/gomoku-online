@@ -3,6 +3,7 @@ package com.example.gomoku.game;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -14,6 +15,7 @@ public class GameRoom {
     private final Board board = new Board();
     private final List<Move> moves = new ArrayList<>();
     private final Set<Long> connected = ConcurrentHashMap.newKeySet();
+    private final Map<Long, Instant> disconnectedAt = new ConcurrentHashMap<>();
     private final Object lock = new Object();
 
     private int seq;
@@ -63,6 +65,22 @@ public class GameRoom {
 
     public void disconnect(Long userId) {
         connected.remove(userId);
+    }
+
+    public void markDisconnected(Long userId) {
+        disconnectedAt.put(userId, Instant.now());
+    }
+
+    public void markConnected(Long userId) {
+        disconnectedAt.remove(userId);
+    }
+
+    public boolean isDisconnected(Long userId) {
+        return disconnectedAt.containsKey(userId);
+    }
+
+    public Instant disconnectedAt(Long userId) {
+        return disconnectedAt.get(userId);
     }
 
     public boolean bothConnected() {

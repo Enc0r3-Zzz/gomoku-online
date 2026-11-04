@@ -570,3 +570,48 @@ input:focus {
         flex: 1 1 140px;
     }
 }
+
+/* ---------- chat ---------- */
+
+.chat-log {
+    height: 160px;
+}
+
+.chat-line {
+    display: flex;
+    gap: 8px;
+    margin: 4px 0;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.chat-line.mine {
+    flex-direction: row-reverse;
+    text-align: right;
+}
+
+.chat-name {
+    flex: 0 0 auto;
+    color: var(--accent);
+    font-weight: 600;
+}
+
+.chat-text {
+    padding: 4px 8px;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    word-break: break-word;
+}
+
+.chat-line.mine .chat-text {
+    background: var(--accent-soft);
+    border-color: #e6cfae;
+}
+
+.chat-system {
+    margin: 6px 0;
+    color: var(--muted);
+    font-size: 12px;
+    text-align: center;
+}

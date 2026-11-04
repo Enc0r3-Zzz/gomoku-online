@@ -91,6 +91,7 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
                         intField(wsMessage, "y"),
                         intField(wsMessage, "seq"));
                 case "RESIGN" -> gameService.resign(matchId(wsMessage), userId);
+                case "CHAT" -> gameService.chat(matchId(wsMessage), userId, textField(wsMessage, "text"));
                 case "PING" -> sessionRegistry.send(userId, "PONG", Map.of());
                 default -> throw new ApiException(ErrorCode.BAD_REQUEST, "未知操作: " + op);
             }
@@ -155,5 +156,13 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
             throw new ApiException(ErrorCode.BAD_REQUEST, "缺少 " + field);
         }
         return data.get(field).asInt();
+    }
+
+    private String textField(WsMessage message, String field) {
+        JsonNode data = message.data();
+        if (data == null || !data.hasNonNull(field)) {
+            throw new ApiException(ErrorCode.BAD_REQUEST, "缺少 " + field);
+        }
+        return data.get(field).asText();
     }
 }
