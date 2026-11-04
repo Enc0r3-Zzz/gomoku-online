@@ -13,7 +13,7 @@
 | M3 | 聊天、计时、认输、断线重连 | ✅ |
 | M4 | ELO、榜单、结算 | ✅ |
 | M5 | 棋盘 Canvas、页面打磨 | ✅ |
-| M6 | 压测、打包、部署 | ⬜ |
+| M6 | 压测、打包、部署 | ✅ |
 | M7 | 报告、PPT、AI 文档 | ⬜ |
 
 ## 技术栈
@@ -94,22 +94,69 @@ mvn test
 
 ```
 src/main/java/com/example/gomoku/
-├── config/       # Security 配置
-├── security/     # UserDetailsService
-├── user/         # 实体、注册/登录、大厅
-└── common/       # 异常与错误码
+├── chat/         # 对局聊天
+├── common/       # 异常与错误码
+├── config/       # Security / WebSocket 配置
+├── game/         # 棋盘、对局实体、GameService、计时
+├── match/        # 匹配队列与调度
+├── rating/       # ELO、评分流水、排行榜
+├── security/     # 登录锁定、限流、审计
+├── user/         # 用户、注册/登录、大厅
+└── ws/           # WebSocket 处理器、会话注册、ticket
 
 src/main/resources/
 ├── db/migration/ # Flyway SQL
 ├── templates/    # Thymeleaf 页面
 └── static/       # CSS/JS
 
-docs/             # 需求、方案、验证方案
-scripts/          # 建库脚本、启动脚本
+docs/             # 需求、方案、验证报告
+scripts/          # 建库、启动、k6 压测脚本
 ```
+
+## 部署
+
+### 方式一：本地 jar
+
+```bash
+mvn -DskipTests package
+java -jar target/gomoku-0.1.0-SNAPSHOT.jar
+```
+
+依赖本机 MySQL 的 `gomoku` 库；数据库连接可用环境变量覆盖：
+
+```
+DB_URL / DB_USERNAME / DB_PASSWORD
+```
+
+### 方式二：Docker Compose
+
+先打包，再启动（Dockerfile 使用 `target/*.jar`）：
+
+```bash
+mvn -DskipTests package
+docker compose up --build
+```
+
+访问 <http://localhost:8080>。MySQL 映射到宿主机 **3307**，避免与本机 3306 冲突。
+
+### 生产注意
+
+- `SPRING_PROFILES_ACTIVE=prod`：开启模板/静态资源缓存，日志降为 INFO。
+- HTTPS 部署时设置 `SESSION_COOKIE_SECURE=true`。
+- 修改默认数据库口令，数据库账号只授权 `gomoku` 库。
+- 反向代理需要转发 `Upgrade` / `Connection` 头，否则 WebSocket 握手失败。
+- 当前为单实例：房间、匹配队列、登录锁定、限流都在内存；多实例需引入 Redis 与粘性会话。
+- 压测脚本：`scripts/load-test.js`（k6），默认 20 VU；注册限流会限制建号速度，压测前可临时调大 `gomoku.security.register-max-per-window`。
 
 ## 设计文档
 
 - [可行性评估](docs/五子棋项目可行性评估.md)
 - [项目实现方案](docs/项目实现方案.md)
 - [初期验证方案](docs/初期验证方案.md)
+- [M0 验证报告](docs/验证/M0-验证报告.md)
+- [M1 验证报告](docs/验证/M1-验证报告.md)
+- [M2 验证报告](docs/验证/M2-验证报告.md)
+- [M3 验证报告](docs/验证/M3-验证报告.md)
+- [M4 验证报告](docs/验证/M4-验证报告.md)
+- [M5 验证报告](docs/验证/M5-验证报告.md)
+- [M6 验证报告](docs/验证/M6-验证报告.md)

@@ -1,0 +1,25 @@
+spring:
+  thymeleaf:
+    cache: true
+  web:
+    resources:
+      cache:
+        period: 3600
+  jpa:
+    properties:
+      hibernate:
+        format_sql: false
+
+server:
+  forward-headers-strategy: framework
+  servlet:
+    session:
+      cookie:
+        http-only: true
+        same-site: lax
+        secure: ${SESSION_COOKIE_SECURE:false}
+
+logging:
+  level:
+    root: INFO
+    com.example.gomoku: INFO
