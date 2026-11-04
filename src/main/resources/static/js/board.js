@@ -16,6 +16,13 @@ export class GomokuBoard {
             this.resize();
             this.draw();
         });
+        if (window.ResizeObserver) {
+            this.resizeObserver = new ResizeObserver(() => {
+                this.resize();
+                this.draw();
+            });
+            this.resizeObserver.observe(this.canvas);
+        }
         this.canvas.addEventListener('click', event => this.click(event));
         this.canvas.addEventListener('mousemove', event => this.mouseMove(event));
         this.canvas.addEventListener('mouseleave', () => {
@@ -28,7 +35,7 @@ export class GomokuBoard {
 
     resize() {
         const rect = this.canvas.getBoundingClientRect();
-        const cssSize = Math.max(280, Math.min(rect.width || 600, 640));
+        const cssSize = Math.max(280, Math.round(rect.width || this.canvas.clientWidth || 600));
         const dpr = window.devicePixelRatio || 1;
         this.canvas.width = Math.round(cssSize * dpr);
         this.canvas.height = Math.round(cssSize * dpr);
@@ -77,15 +84,24 @@ export class GomokuBoard {
 
     pointAt(event) {
         const rect = this.canvas.getBoundingClientRect();
+        const width = rect.width || this.size;
+        const height = rect.height || width;
+        const paddingX = Math.max(18, width * 0.055);
+        const paddingY = Math.max(18, height * 0.055);
+        const cellX = (width - paddingX * 2) / (SIZE - 1);
+        const cellY = (height - paddingY * 2) / (SIZE - 1);
+
         const px = event.clientX - rect.left;
         const py = event.clientY - rect.top;
-        const x = Math.round((px - this.padding) / this.cell);
-        const y = Math.round((py - this.padding) / this.cell);
+        const x = Math.round((px - paddingX) / cellX);
+        const y = Math.round((py - paddingY) / cellY);
         if (x < 0 || x >= SIZE || y < 0 || y >= SIZE) {
             return null;
         }
-        const center = this.pointOf({ x, y });
-        if (Math.hypot(px - center.x, py - center.y) > this.cell * 0.48) {
+
+        const centerX = paddingX + x * cellX;
+        const centerY = paddingY + y * cellY;
+        if (Math.hypot(px - centerX, py - centerY) > Math.min(cellX, cellY) * 0.48) {
             return null;
         }
         return { x, y };
