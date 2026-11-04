@@ -1,6 +1,11 @@
 package com.example.gomoku.user;
 
 import com.example.gomoku.config.SecurityConfig;
+import com.example.gomoku.security.AuditLogger;
+import com.example.gomoku.security.LoginAttemptService;
+import com.example.gomoku.security.LoginFailureHandler;
+import com.example.gomoku.security.LoginSuccessHandler;
+import com.example.gomoku.security.RateLimiter;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -18,7 +23,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(controllers = {AuthController.class, LobbyController.class})
-@Import(SecurityConfig.class)
+@Import({SecurityConfig.class, LoginSuccessHandler.class, LoginFailureHandler.class})
 class PageRenderTest {
 
     @Autowired
@@ -26,6 +31,15 @@ class PageRenderTest {
 
     @MockitoBean
     private UserService userService;
+
+    @MockitoBean
+    private LoginAttemptService loginAttemptService;
+
+    @MockitoBean
+    private AuditLogger auditLogger;
+
+    @MockitoBean
+    private RateLimiter rateLimiter;
 
     @Test
     void loginPageRenders() throws Exception {
