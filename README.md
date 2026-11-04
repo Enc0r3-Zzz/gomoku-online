@@ -58,6 +58,13 @@ Windows：
 scripts\dev.bat
 ```
 
+脚本会自动选择 JDK 17（优先 `JAVA17_HOME`，其次本机 `D:\ProgramFiles\DevTools\Java\jdk`，最后 `JAVA_HOME`），
+即使系统 `JAVA_HOME` 指向 JDK 24 也能正确使用 17。只检查环境、不启动应用：
+
+```bat
+scripts\dev.bat --check
+```
+
 或手动：
 
 ```bash
