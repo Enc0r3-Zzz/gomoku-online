@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/head :: head('对局')}"></head>
+<body class="app-page" th:attr="data-ws-ticket=${wsTicket}">
+<header class="topbar">
+    <a class="brand" th:href="@{/lobby}">五子棋 <span>ONLINE</span></a>
+    <div class="userbox">
+        <span class="avatar" th:text="${#strings.substring(me.nickname, 0, 1)}">M</span>
+        <span class="nickname" th:text="${me.nickname}">我</span>
+        <span class="rating-pill" th:text="${me.rating}">1200</span>
+        <a class="link-btn" th:href="@{/lobby}">返回大厅</a>
+    </div>
+</header>
+
+<main class="game-layout" id="gameRoot"
+      th:attr="data-match-id=${match.id},
+               data-my-color=${myColor},
+               data-my-name=${me.nickname},
+               data-opponent-name=${opponent.nickname},
+               data-my-rating=${me.rating},
+               data-opponent-rating=${opponent.rating}">
+    <section class="board-panel">
+        <div class="board-wrap">
+            <canvas id="board" width="600" height="600" aria-label="五子棋棋盘"></canvas>
+        </div>
+        <section class="chat-panel" id="chatPanel">
+            <div class="chat-header">对局聊天</div>
+            <div class="chat-log" id="chatLog">
+                <p class="chat-placeholder">聊天功能将在 M3 开放</p>
+            </div>
+            <form class="chat-form" id="chatForm">
+                <input id="chatInput" type="text" maxlength="200" placeholder="M3 开放" disabled>
+                <button class="btn primary" type="submit" disabled>发送</button>
+            </form>
+        </section>
+    </section>
+
+    <aside class="game-side">
+        <div class="player-card">
+            <span class="stone-dot" th:classappend="${myColor == 'BLACK' ? 'white' : 'black'}"></span>
+            <div class="player-meta">
+                <span class="player-name" th:text="${opponent.nickname}">对手</span>
+                <span class="player-rating" th:text="${opponent.rating}">1200</span>
+            </div>
+            <span class="player-tag">对手</span>
+        </div>
+
+        <div class="turn-card">
+            <span id="turnText">等待对手加入…</span>
+            <span id="timerText" class="timer"></span>
+        </div>
+
+        <div class="player-card">
+            <span class="stone-dot" th:classappend="${myColor == 'BLACK' ? 'black' : 'white'}"></span>
+            <div class="player-meta">
+                <span class="player-name" th:text="${me.nickname}">我</span>
+                <span class="player-rating" th:text="${me.rating}">1200</span>
+            </div>
+            <span class="player-tag">我 · <span th:text="${myColor == 'BLACK' ? '黑' : '白'}">黑</span></span>
+        </div>
+
+        <div class="side-actions">
+            <button id="resignBtn" class="btn ghost" type="button">认输</button>
+        </div>
+    </aside>
+</main>
+
+<div class="overlay hidden" id="resultOverlay">
+    <div class="result-card">
+        <p class="eyebrow">GAME OVER</p>
+        <h2 id="resultTitle">对局结束</h2>
+        <p id="resultDetail" class="muted"></p>
+        <a class="btn primary block" th:href="@{/lobby}">返回大厅</a>
+    </div>
+</div>
+
+<script type="module" th:src="@{/js/game.js}"></script>
+</body>
+</html>

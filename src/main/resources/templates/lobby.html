@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
 <head th:replace="~{fragments/head :: head('大厅')}"></head>
-<body class="app-page">
+<body class="app-page" th:attr="data-ws-ticket=${wsTicket}">
 <header class="topbar">
     <a class="brand" th:href="@{/lobby}">五子棋 <span>ONLINE</span></a>
     <div class="userbox">
@@ -18,11 +18,12 @@
     <section class="card hero">
         <p class="eyebrow">M0 · SKELETON</p>
         <h1>准备开局</h1>
-        <p class="muted">匹配功能将在 M2 开放，当前先验证注册、登录与数据库。</p>
+        <p class="muted">点击匹配，系统会按评分寻找对手。</p>
         <div class="actions">
-            <button class="btn primary" disabled title="M2 开放">开始匹配</button>
+            <button id="matchBtn" class="btn primary" type="button">开始匹配</button>
             <a class="btn ghost" th:href="@{/leaderboard}">查看排行榜</a>
         </div>
+        <p id="matchStatus" class="match-status" aria-live="polite"></p>
     </section>
 
     <section class="card stats">
@@ -35,5 +36,6 @@
         <p class="muted small">初始分 1200 · 排位赛 M4 开放</p>
     </section>
 </main>
+<script type="module" th:src="@{/js/lobby.js}"></script>
 </body>
 </html>

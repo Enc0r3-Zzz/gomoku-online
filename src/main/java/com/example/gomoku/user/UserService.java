@@ -55,4 +55,10 @@ public class UserService {
         return userRepository.findByUsername(username)
                 .orElseThrow(() -> new ApiException(ErrorCode.NOT_FOUND, "用户不存在"));
     }
+
+    @Transactional(readOnly = true)
+    public User requireById(Long id) {
+        return userRepository.findById(id)
+                .orElseThrow(() -> new ApiException(ErrorCode.NOT_FOUND, "用户不存在"));
+    }
 }

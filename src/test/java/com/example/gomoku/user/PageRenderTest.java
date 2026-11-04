@@ -6,6 +6,7 @@ import com.example.gomoku.security.LoginAttemptService;
 import com.example.gomoku.security.LoginFailureHandler;
 import com.example.gomoku.security.LoginSuccessHandler;
 import com.example.gomoku.security.RateLimiter;
+import com.example.gomoku.ws.WsTicketService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -40,6 +41,9 @@ class PageRenderTest {
 
     @MockitoBean
     private RateLimiter rateLimiter;
+
+    @MockitoBean
+    private WsTicketService wsTicketService;
 
     @Test
     void loginPageRenders() throws Exception {
