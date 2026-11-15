@@ -14,7 +14,7 @@
 | M4 | ELO、榜单、结算 | ✅ |
 | M5 | 棋盘 Canvas、页面打磨 | ✅ |
 | M6 | 压测、打包、部署 | ✅ |
-| M7 | 报告、PPT、AI 文档 | ⬜ |
+| M7 | 报告、PPT、AI 文档 | ✅ |
 
 ## 技术栈
 
@@ -147,6 +147,20 @@ docker compose up --build
 - 反向代理需要转发 `Upgrade` / `Connection` 头，否则 WebSocket 握手失败。
 - 当前为单实例：房间、匹配队列、登录锁定、限流都在内存；多实例需引入 Redis 与粘性会话。
 - 压测脚本：`scripts/load-test.js`（k6），默认 20 VU；注册限流会限制建号速度，压测前可临时调大 `gomoku.security.register-max-per-window`。
+
+## 课程交付物
+
+- [课程报告 docx](docs/报告/Java语言及网络编程课程报告.docx)
+- [课程报告 PDF](docs/报告/Java语言及网络编程课程报告.pdf)
+- [答辩 PPT](docs/报告/五子棋项目答辩.pptx)
+- [提交清单](docs/报告/提交清单.md)
+- [答辩演示脚本](docs/报告/答辩演示脚本.md)
+- [可验收规格 SKILL](skills/gomoku-spec/SKILL.md)
+- [AI Prompt 记录](docs/ai/prompt-log.md)
+- [AI 审批门禁](docs/ai/approval-gates.md)
+- [AI 评测报告](docs/ai/eval-report.md)
+
+> 报告封面与 PPT 封面中的姓名、学号、专业、任课教师需要手动填写。
 
 ## 设计文档
 
